@@ -15,6 +15,8 @@
         <button @click="$gf.toggleLogIn" class="login-btn">
             {{ $gf.me? 'Log Out' : 'Log In' }}
         </button>
+
+
     </p>
 
 
@@ -29,6 +31,8 @@
             My Name Is:
             <name :actor="$gf.me" :editable="true"></name>
         </p>
+
+        <profile :actor="$gf.me" :editable="true"></profile>
 
         <!--      <p>-->
         <!--        Change chat format:-->
@@ -65,49 +69,59 @@
                             <div :class="{'sender-me': message.actor==$gf.me, 'sender-other': message.actor!=$gf.me}"
                                  class="message-sender">
                                 <name :actor="message.actor"></name>
-                                <like :messageid="message.id"></like>
+
+                            </div>
+                            <div v-if="message.replyTo" class="message-bubble message-other replyView">
+                                <name :actor="messagesMap[message.replyTo].actor" class="message-sender"></name>
+                                <div class="message-reply-content">{{ messagesMap[message.replyTo].content }}</div>
                             </div>
                             <div class="attachment-message-wrapper">
-                                <div :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
-                                     class="message-bubble">
-                                    <!-- Display and edit form if we're editing a message -->
-                                    <form @submit.prevent="saveEditMessage(message)" v-if="editID==message.id">
-                                        <input v-model="editText">
-                                        <input type="submit" value="Save"/>
-                                    </form>
+                                <div class="horizontal-message-block">
+                                    <div :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
+                                         class="message-bubble">
+                                        <!-- Display and edit form if we're editing a message -->
+                                        <form @submit.prevent="saveEditMessage(message)" v-if="editID==message.id">
+                                            <input v-model="editText">
+                                            <input type="submit" value="Save"/>
+                                        </form>
 
 
-                                    <!-- Otherwise, display a bunch of properties from the message -->
-                                    <ul v-else>
-                                        <li>
-                                            {{ message.content }}
-                                        </li>
-                                        <!--            <li>-->
-                                        <!--              From Actor ID: {{ message.actor }}-->
-                                        <!--            </li>-->
-                                        <!--            <template v-if="privateMessaging">-->
-                                        <!--              <li>-->
-                                        <!--                To Name: <name :actor="message.bto[0]"></name>-->
-                                        <!--              </li>-->
-                                        <!--              <li>-->
-                                        <!--                To Actor ID: {{ message.bto[0] }}-->
-                                        <!--              </li>-->
-                                        <!--            </template>-->
-                                        <!--            <li>-->
-                                        <!--              Published at Time: {{ message.published }}-->
-                                        <!--            </li>-->
-                                        <!--            <li>-->
-                                        <!--              Last Edited at Time: {{ message.updated }}-->
-                                        <!--            </li>-->
-                                        <!--            <li>-->
-                                        <!--              &lt;!&ndash; This is a unique identifier that can be used to "link" to messages &ndash;&gt;-->
-                                        <!--              ID: {{ message.id }}-->
-                                        <!--            </li>-->
+                                        <!-- Otherwise, display a bunch of properties from the message -->
+                                        <ul v-else>
+                                            <li>
+                                                {{ message.content }}
+                                            </li>
+                                            <!--            <li>-->
+                                            <!--              From Actor ID: {{ message.actor }}-->
+                                            <!--            </li>-->
+                                            <!--            <template v-if="privateMessaging">-->
+                                            <!--              <li>-->
+                                            <!--                To Name: <name :actor="message.bto[0]"></name>-->
+                                            <!--              </li>-->
+                                            <!--              <li>-->
+                                            <!--                To Actor ID: {{ message.bto[0] }}-->
+                                            <!--              </li>-->
+                                            <!--            </template>-->
+                                            <!--            <li>-->
+                                            <!--              Published at Time: {{ message.published }}-->
+                                            <!--            </li>-->
+                                            <!--            <li>-->
+                                            <!--              Last Edited at Time: {{ message.updated }}-->
+                                            <!--            </li>-->
+                                            <!--            <li>-->
+                                            <!--              &lt;!&ndash; This is a unique identifier that can be used to "link" to messages &ndash;&gt;-->
+                                            <!--              ID: {{ message.id }}-->
+                                            <!--            </li>-->
 
-                                        <!-- Only add these controls if the message is ours -->
-                                        <!-- You can't edit or delete other people's messages -->
+                                            <!-- Only add these controls if the message is ours -->
+                                            <!-- You can't edit or delete other people's messages -->
 
-                                    </ul>
+                                        </ul>
+                                    </div>
+                                    <div v-if="message.actor!=$gf.me">
+                                        <button @click="replyToMessage(message)" class="message-control">↩️</button>
+                                        <like :messageid="message.id"></like>
+                                    </div>
                                 </div>
                                 <div v-if="message.attachment" :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
                                      class="message-bubble">
@@ -125,11 +139,23 @@
                                     </div>
                                 </div>
                             </div>
+                            <read-receipt :messageid="message.id" class="read-receipt">
+                            </read-receipt>
                         </div>
+
+
                     </div>
                 </li>
                 </transition-group>
             </ul>
+
+        </div>
+        <div v-if="replyTo">
+<!--            have the replyTo message content here-->
+            <name :actor="messagesMap[replyTo].actor" class="message-sender"></name>
+            <div class="message-bubble message-other replyView">
+                {{messagesMap[replyTo].content}}
+            </div>
 
         </div>
         <form @submit.prevent="sendMessage">
@@ -177,6 +203,33 @@
         </button>
     </div>
 </template>
+
+<template id="read-receipt">
+    <div class="read-receipt">
+        <span v-if="readReceipts.length!==0">
+            <span v-if="readReceipts.length==1">
+                1 person has read this message
+            </span>
+            <span v-else>
+                {{ readReceipts.length-1 }} people have read this message
+            </span>
+        </span>
+    </div>
+</template>
+
+<template id="profile">
+    <span v-if="!editing">
+        <img v-if="profilePictureUrl" :src="profilePictureUrl" class="profile-picture"/>
+        <button @click="editProfilePicture" v-if="editable">
+            Set Profile Picture
+        </button>
+    </span>
+    <form @submit.prevent="saveProfilePicture" v-else>
+        <input @change="handleFileUpload" ref="fileInput" type="file" accept="image/*" />
+        <input type="submit" value="Save Profile Picture" />
+    </form>
+</template>
+
 
 </body>
 </html>

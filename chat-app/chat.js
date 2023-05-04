@@ -14,7 +14,7 @@ const app = {
 
     setup() {
         // Initialize the name of the channel we're chatting in
-        const channel = Vue.ref("default");
+        const channel = Vue.ref("test");
 
         // And a flag for whether or not we're private-messaging
         const privateMessaging = Vue.ref(false);
@@ -39,7 +39,8 @@ const app = {
             editText: "",
             recipient: "",
             file: null,
-            downloadedImages: {}
+            downloadedImages: {},
+            replyTo: null,
         };
     },
 
@@ -85,11 +86,22 @@ const app = {
                     .slice(0, 100)
             );
         },
+        messagesMap() {
+            // a map of message id to message
+            return this.messages.reduce((map, message) => {
+                map[message.id] = message;
+                return map;
+            }, {});
+        }
     },
 
     methods: {
         async sendMessage() {
 
+            const message = {
+                type: "Note",
+                content: this.messageText,
+            };
 
             // Reset the value of the input box to the placeholder after the transition
             if (this.messageText !== '') {
@@ -99,11 +111,6 @@ const app = {
                     inputBox.value = '';
                     inputBox.classList.remove('move-up');
                 }, 500);  // 500ms is the duration of the transition
-
-                const message = {
-                    type: "Note",
-                    content: this.messageText,
-                };
             }
             else {
                 console.log('empty');
@@ -136,6 +143,11 @@ const app = {
                 message.context = [this.channel];
             }
 
+            if (this.replyTo) {
+                message.replyTo = this.replyTo;
+                this.replyTo = null;
+            }
+
             // Send!
             this.$gf.post(message);
             this.messageText = "";
@@ -162,14 +174,11 @@ const app = {
         handleFileUpload(event) {
             this.file = event.target.files[0]
         },
-    },
-    watch: {
-        messages(messages) {
-            const images = messages.filter(m => m.attachment && m.attachment.type === 'Image' && typeof m.attachment.magnet == 'string' && !this.downloadedImages[m.attachment.magnet])
-            images.forEach(async m => {
-                this.downloadedImages[m.attachment.magnet] = URL.createObjectURL(await this.$gf.media.fetch(m.attachment.magnet))
-            })
-            console.log(this.downloadedImages)
+        replyToMessage(message) {
+            this.replyTo = message.id;
+        },
+        removeReplyTo() {
+            this.replyTo = null;
         }
     }
 };
@@ -186,6 +195,7 @@ const Name = {
 
     computed: {
         profile() {
+            // console.log('ERE',this.objects)
             return this.objects
                 // Filter the raw objects for profile data
                 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-profile
@@ -283,7 +293,126 @@ const Like = {
     template: '#like'
 
 }
-app.components = {Name, Like}
+
+const ReadReceipt = {
+    props: ["messageid"],
+
+    setup(props) {
+        const $gf = Vue.inject('graffiti');
+        const messageid = Vue.toRef(props, 'messageid');
+        const readerUsernames = Vue.ref([]);
+        const { objects: readReceiptsRaw } = $gf.useObjects([messageid]);
+
+        // if the message is not ours and we have not seen it yet, send a read receipt
+        return { readReceiptsRaw, readerUsernames };
+    },
+
+    created() {
+        this.resolver = new Resolver(this.$gf);
+    },
+
+    computed: {
+        readReceipts() {
+            return this.readReceiptsRaw.filter(
+                (m) => m.type && m.type === "Read" && m.object === this.messageid && m.actor !== this.$gf.me
+            );
+        }
+    },
+
+    watch: {
+        async readReceipts(newReceipts) {
+            const filteredReceipts = this.readReceiptsRaw.filter(
+                (m) => m.type && m.type === "Read" && m.object === this.messageid && m.actor === this.$gf.me
+            );
+            if (filteredReceipts.length === 0) {
+                this.$gf.post({
+                    type: "Read",
+                    object: this.messageid,
+                    context: [this.messageid]
+                });
+            }
+            this.readerUsernames = await Promise.all(
+                filteredReceipts.map(async (receipt) => await this.resolver.actorToUsername(receipt.actor))
+            );
+        },
+
+    },
+
+    template: '#read-receipt'
+}
+
+const Profile = {
+    props: ["actor", "editable"],
+    data() {
+        return {
+            editing: false,
+            file: null,
+            profilePictureUrl: "",
+        };
+    },
+    setup(props) {
+        // Get a collection of all objects associated with the actor
+        const {actor} = Vue.toRefs(props)
+        const $gf = Vue.inject('graffiti')
+        return $gf.useObjects([actor])
+    },
+
+    computed: {
+        profile() {
+            console.log('o', this.objects);
+            return this.objects
+                // Filter the raw objects for profile data
+                // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-profile
+                .filter(m =>
+                    // Does the message have a type property?
+                    m.type &&
+                    // Is the value of that property 'Profile'?
+                    m.type == 'Profile' &&
+                    // Does the message have a name property?
+                    m.icon &&
+                    // Is that property a string?
+                    m.icon.type == 'Image')
+                // Choose the most recent one or null if none exists
+                .reduce((prev, curr) => !prev || curr.published > prev.published ? curr : prev, null)
+        }
+    },
+    methods: {
+        async getProfile() {
+            console.log('HERE', this.profile);
+            if (this.profile && this.profile.icon && this.profile.icon.magnet) {
+                this.profilePictureUrl = await this.getProfilePictureUrl();
+            }
+        },
+        async getProfilePictureUrl(magnet) {
+            const blob = await this.$gf.media.fetch(magnet);
+            return URL.createObjectURL(blob);
+        },
+        editProfilePicture() {
+            this.editing = true;
+        },
+        handleFileUpload(e) {
+            this.file = e.target.files[0];
+        },
+        async saveProfilePicture() {
+            if (this.file) {
+                const magnet = await this.$gf.media.store(this.file);
+                const profileUpdate = {
+                    type: "Profile",
+                    icon: {
+                        type: "Image",
+                        magnet: magnet,
+                    }
+                };
+                await this.$gf.post(profileUpdate);
+                this.profilePictureUrl = await this.getProfilePictureUrl(magnet);
+            }
+            this.editing = false;
+        },
+    },
+    template: '#profile',
+};
+
+app.components = {Name, Like, ReadReceipt, Profile}
 Vue.createApp(app)
     .use(GraffitiPlugin(Vue))
     .mount('#app')
