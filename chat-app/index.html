@@ -51,7 +51,8 @@
 
             <ul>
                 <!-- List all the messages -->
-                <li :key="message.id" v-for="message of messages.slice().reverse()">
+                <transition-group name="fade">
+                    <li :key="message.id" v-for="message of messages.slice().reverse()" :class="{'other-message': message.actor!=$gf.me, 'my-message': message.actor==$gf.me}">
 
                     <div class="message-line">
 
@@ -127,13 +128,14 @@
                         </div>
                     </div>
                 </li>
+                </transition-group>
             </ul>
 
         </div>
         <form @submit.prevent="sendMessage">
-            <input placeholder="Type a message..." type="text" v-model="messageText"/>
+            <input id="myInput" placeholder="Type a message..." type="text" v-model="messageText"/>
             <input @change="handleFileUpload" ref="fileInput" type="file"/>
-            <input type="submit" value="Send"/>
+            <input id="submit" type="submit" value="Send"/>
         </form>
 
     </template>
@@ -169,8 +171,10 @@
         {{ likes.length }} Like<span v-if="likes.length>1">s</span>
     </div>
     <div>
-        <button @click="sendLike" v-if="!liked">Like</button>
-        <button @click="removeLike" v-if="liked">Unlike</button>
+        <button tabindex="0" @click="toggleLike" class="like-button">
+            <span v-if="!liked">👍 Like </span>
+            <span v-else>🫴 Unlike</span>
+        </button>
     </div>
 </template>
 

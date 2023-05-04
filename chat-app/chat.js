@@ -89,11 +89,32 @@ const app = {
 
     methods: {
         async sendMessage() {
-            const message = {
-                type: "Note",
-                content: this.messageText,
-            };
 
+
+            // Reset the value of the input box to the placeholder after the transition
+            if (this.messageText !== '') {
+                let inputBox = document.getElementById('myInput');
+                inputBox.classList.add('move-up');
+                setTimeout(() => {
+                    inputBox.value = '';
+                    inputBox.classList.remove('move-up');
+                }, 500);  // 500ms is the duration of the transition
+
+                const message = {
+                    type: "Note",
+                    content: this.messageText,
+                };
+            }
+            else {
+                console.log('empty');
+                let submitButton = document.getElementById('submit');
+                submitButton.classList.add('input-error');
+                submitButton.value = 'Invalid';
+                setTimeout(() => {
+                    submitButton.value = 'Send';
+                    submitButton.classList.remove('input-error');
+                }, 500);  // 500ms is the duration of the transition
+            }
 
             if (this.file) {
                 const uri = await this.$gf.media.store(this.file)
@@ -227,6 +248,13 @@ const Like = {
                 object: this.messageid,
                 context: [this.messageid]
             });
+        },
+        toggleLike() {
+            if (this.liked) {
+                this.removeLike();
+            } else {
+                this.sendLike();
+            }
         },
         removeLike() {
             this.$gf.remove(this.likes.find((l) => l.actor === this.$gf.me));
