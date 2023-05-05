@@ -12,6 +12,12 @@ body {
     margin-right: 10px;
 }
 
+.message-profile img {
+    width: 50px;
+    height: auto;
+    border-radius: 50%;
+}
+
 .container {
     max-width: 800px;
     margin: 0 auto;
@@ -95,12 +101,28 @@ button:active {
     width: fit-content;
 }
 
-.horizontal-message-block {
+li.my-message .replyView {
+    align-items: flex-end;
+    align-self: flex-end;
+    margin-right: 0;
+}
+
+.other-message .horizontal-message-block {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    align-self: flex-start;
+}
+
+.my-message .horizontal-message-block {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    align-self: flex-end;
 }
 
 @keyframes shake {
@@ -217,7 +239,7 @@ input#channel {
 .attachment-message-wrapper{
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
     width: fit-content;
 }
 
@@ -309,6 +331,10 @@ input#channel {
     flex-direction: column;
     align-items: flex-start;
     width: fit-content;
+}
+
+.my-message .message-wrapper {
+    align-items: flex-end;
 }
 
 .sender-me {

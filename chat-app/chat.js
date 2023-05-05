@@ -180,6 +180,15 @@ const app = {
         removeReplyTo() {
             this.replyTo = null;
         }
+    },
+    watch: {
+        messages(messages) {
+            const images = messages.filter(m => m.attachment && m.attachment.type === 'Image' && typeof m.attachment.magnet == 'string' && !this.downloadedImages[m.attachment.magnet])
+            images.forEach(async m => {
+                this.downloadedImages[m.attachment.magnet] = URL.createObjectURL(await this.$gf.media.fetch(m.attachment.magnet))
+            })
+            console.log(this.downloadedImages)
+        }
     }
 };
 
@@ -343,6 +352,12 @@ const ReadReceipt = {
 
 const Profile = {
     props: ["actor", "editable"],
+    setup(props) {
+        // Get a collection of all objects associated with the actor
+        const {actor} = Vue.toRefs(props)
+        const $gf = Vue.inject('graffiti')
+        return $gf.useObjects([actor])
+    },
     data() {
         return {
             editing: false,
@@ -350,16 +365,8 @@ const Profile = {
             profilePictureUrl: "",
         };
     },
-    setup(props) {
-        // Get a collection of all objects associated with the actor
-        const {actor} = Vue.toRefs(props)
-        const $gf = Vue.inject('graffiti')
-        return $gf.useObjects([actor])
-    },
-
     computed: {
         profile() {
-            console.log('o', this.objects);
             return this.objects
                 // Filter the raw objects for profile data
                 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-profile
@@ -374,15 +381,11 @@ const Profile = {
                     m.icon.type == 'Image')
                 // Choose the most recent one or null if none exists
                 .reduce((prev, curr) => !prev || curr.published > prev.published ? curr : prev, null)
-        }
+        },
     },
     methods: {
-        async getProfile() {
-            console.log('HERE', this.profile);
-            if (this.profile && this.profile.icon && this.profile.icon.magnet) {
-                this.profilePictureUrl = await this.getProfilePictureUrl();
-            }
-        },
+
+
         async getProfilePictureUrl(magnet) {
             const blob = await this.$gf.media.fetch(magnet);
             return URL.createObjectURL(blob);
@@ -403,11 +406,18 @@ const Profile = {
                         magnet: magnet,
                     }
                 };
-                await this.$gf.post(profileUpdate);
+                this.$gf.post(profileUpdate);
                 this.profilePictureUrl = await this.getProfilePictureUrl(magnet);
             }
             this.editing = false;
         },
+    },
+    watch: {
+        async profile(profile) {
+            if (profile && profile.icon && profile.icon.magnet) {
+                this.profilePictureUrl = await this.getProfilePictureUrl(profile.icon.magnet);
+            }
+        }
     },
     template: '#profile',
 };

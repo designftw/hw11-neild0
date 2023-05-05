@@ -71,7 +71,7 @@
                                 <name :actor="message.actor"></name>
 
                             </div>
-                            <div v-if="message.replyTo" class="message-bubble message-other replyView">
+                            <div v-if="messagesMap[message.replyTo]" class="message-bubble message-other replyView">
                                 <name :actor="messagesMap[message.replyTo].actor" class="message-sender"></name>
                                 <div class="message-reply-content">{{ messagesMap[message.replyTo].content }}</div>
                             </div>
@@ -139,6 +139,7 @@
                                     </div>
                                 </div>
                             </div>
+                            <profile :actor="message.actor" class="message-profile"></profile>
                             <read-receipt :messageid="message.id" class="read-receipt">
                             </read-receipt>
                         </div>
@@ -156,11 +157,12 @@
             <div class="message-bubble message-other replyView">
                 {{messagesMap[replyTo].content}}
             </div>
+            <button @click="removeReplyTo" class="message-control">🗑️</button>
 
         </div>
         <form @submit.prevent="sendMessage">
             <input id="myInput" placeholder="Type a message..." type="text" v-model="messageText"/>
-            <input @change="handleFileUpload" ref="fileInput" type="file"/>
+            <input @change="handleFileUpload" ref="fileInput" type="file" accept="image/*"/>
             <input id="submit" type="submit" value="Send"/>
         </form>
 
