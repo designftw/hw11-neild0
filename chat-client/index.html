@@ -50,6 +50,7 @@
         <!--      </p>-->
 
         <input id="channel" v-model="channel"/>
+        <user-tags :userid="$gf.me"></user-tags>
 
         <div class="messages-container">
 
@@ -63,6 +64,7 @@
                         <div class="message-controls" v-if="message.actor==$gf.me">
                             <button @click="startEditMessage(message)" class="message-control">✏️</button>
                             <button @click="removeMessage(message)" class="message-control">🗑️</button>
+                            <pin :messageid="message.id" :channelid="channel"></pin>
                         </div>
 
                         <div class="message-wrapper">
@@ -121,6 +123,7 @@
                                     <div v-if="message.actor!=$gf.me">
                                         <button @click="replyToMessage(message)" class="message-control">↩️</button>
                                         <like :messageid="message.id"></like>
+                                        <pin :messageid="message.id" :channelid="channel"></pin>
                                     </div>
                                 </div>
                                 <div v-if="message.attachment" :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
@@ -166,8 +169,14 @@
             <input id="submit" type="submit" value="Send"/>
         </form>
 
+        <pin-search :channelid="channel">
+
+        </pin-search>
+
     </template>
     <!-- A form for sending messages -->
+
+
 
 </div>
 
@@ -206,6 +215,25 @@
     </div>
 </template>
 
+<template id="pin">
+    <div class="pin">
+        <button tabindex="0" @click="togglePin" class="pin-button">
+            <span v-if="!pinned">Pin</span>
+            <span v-else-if="ownPin">🗑️ Unpin</span>
+            <span v-else>📌 Pinned</span>
+        </button>
+    </div>
+</template>
+
+<template id="pin-search">
+    <div class="pin-search">
+        Pinned Messages:
+        <li :key="message.id" v-for="message of pinnedMessages">
+            {{message.content}}
+        </li>
+    </div>
+</template>
+
 <template id="read-receipt">
     <div class="read-receipt">
         <span v-if="readReceipts.length!==0">
@@ -231,6 +259,31 @@
         <input type="submit" value="Save Profile Picture" />
     </form>
 </template>
+
+<!--<template id="tagMessage">-->
+<!--    <div class="tagMessage">-->
+<!--        <button @click="toggleTag()-->
+<!--        </button>-->
+<!--    </div>-->
+<!--</template>-->
+
+<template id="user-tags">
+    <div class="user-tags">
+        <h2>User Tags</h2>
+        <ul>
+            <li v-for="tag in tags" :key="tag.id">
+                {{ tag.tag }}
+                <button @click="removeTag(tag.tag)">Remove</button>
+            </li>
+        </ul>
+        <div class="add-tag">
+            <input type="text" v-model="newTag" placeholder="Enter new tag" />
+            <button @click="addTag">Add Tag</button>
+        </div>
+    </div>
+</template>
+
+
 
 
 </body>

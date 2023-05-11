@@ -187,7 +187,6 @@ const app = {
             images.forEach(async m => {
                 this.downloadedImages[m.attachment.magnet] = URL.createObjectURL(await this.$gf.media.fetch(m.attachment.magnet))
             })
-            console.log(this.downloadedImages)
         }
     }
 };
@@ -204,7 +203,6 @@ const Name = {
 
     computed: {
         profile() {
-            // console.log('ERE',this.objects)
             return this.objects
                 // Filter the raw objects for profile data
                 // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-profile
@@ -422,7 +420,221 @@ const Profile = {
     template: '#profile',
 };
 
-app.components = {Name, Like, ReadReceipt, Profile}
+const Pin = {
+    props: ["messageid", "channelid"],
+
+    methods: {
+        sendPin() {
+            this.$gf.post({
+                type: "Pin",
+                object: this.messageid,
+                context: [this.messageid, this.channelid],
+            });
+        },
+        togglePin() {
+            if (this.pinned && this.ownPin) {
+                this.removePin();
+            } else if (!this.pinned) {
+                this.sendPin();
+            }
+        },
+        removePin() {
+            this.$gf.remove(this.pin[0]);
+        }
+    },
+
+    setup(props) {
+        const $gf = Vue.inject('graffiti')
+        const messageid = Vue.toRef(props, 'messageid')
+        const { objects: pinsRaw } = $gf.useObjects([messageid])
+        return { pinsRaw }
+    },
+
+    computed: {
+        pin() {
+            return this.pinsRaw.filter(
+                (m) => m.type && m.type === "Pin" && m.object === this.messageid
+            )
+        },
+        pinned() {
+            // return if any users have pinned this message
+            return this.pin.length > 0
+        },
+        ownPin() {
+            // return if the current user has pinned this message
+            return this.pin.some((l) => l.actor === this.$gf.me)
+        }
+    },
+
+    template: '#pin'
+
+}
+
+const PinSearch = {
+    props: ["channelid"],
+    setup(props) {
+        const $gf = Vue.inject('graffiti')
+        const channelid = Vue.toRef(props, 'channelid')
+        const { objects: pinsRaw } = $gf.useObjects([channelid])
+        return { pinsRaw }
+    },
+
+    computed: {
+        pins() {
+            return this.pinsRaw.filter(
+                (m) => m.type && m.type === "Pin"
+            )
+        },
+        pinnedMessages() {
+            const pinnedObjects = this.pins.map((p) => p.object)
+            return this.pinsRaw.filter(
+                (m) => pinnedObjects.includes(m.id)
+            )
+        }
+    },
+    template: '#pin-search'
+}
+
+const TagMessage = {
+    props: ["messageid"],
+    setup(props) {
+        const $gf = Vue.inject('graffiti')
+        const messageid = Vue.toRef(props, 'messageid')
+        const { objects: tagsRaw } = $gf.useObjects([messageid])
+        return { tagsRaw }
+    },
+    methods: {
+        sendTag(tagString) {
+            this.$gf.post({
+                type: "Tag",
+                object: this.messageid,
+                tag: tagString,
+                context: [this.messageid, this.tag]
+            });
+        },
+        toggleTag(tagString) {
+            if (this.getTag(this.tag).length > 0) {
+                this.removeTag(tagString);
+            } else {
+                this.sendTag(tagString);
+            }
+        },
+        removeTag(tagString) {
+            for (const tag of this.getTag(tagString)) {
+                this.$gf.remove(tag);
+            }
+        },
+        getTag(tagString) {
+            return this.tags.filter((l) => l.tag === tagString);
+        }
+    },
+    computed: {
+        tags() {
+            return this.tagsRaw.filter(
+                (m) => m.type && m.type === "Tag" && m.object === this.messageid && m.actor === this.$gf.me
+            )
+        },
+        tagNames() {
+            return this.tags.map((t) => t.tag);
+        }
+    },
+    template: '#tagMessage'
+}
+
+const UserTags = {
+    props: ["userid"],
+    data() {
+        return {
+            newTag: "",
+        }
+    },
+    setup(props) {
+        const $gf = Vue.inject('graffiti')
+        const userid = Vue.toRef(props, 'userid')
+        const { objects: tagsRaw } = $gf.useObjects([userid])
+        return { tagsRaw }
+    },
+    methods: {
+        addTag() {
+            if (this.tags.filter((l) => l.tag === this.newTag).length === 0) {
+                console.log("adding tag", this.newTag);
+                this.$gf.post({
+                    type: "UserTag",
+                    actor: this.userid,
+                    tag: this.newTag,
+                    context: [this.userid]
+                });
+            }
+        },
+        removeTag(tagString) {
+            for (const tag of this.tags.filter((l) => l.tag === tagString)) {
+                this.$gf.remove(tag);
+            }
+        }
+    },
+    computed: {
+        tags() {
+            return this.tagsRaw.filter(
+                (m) => m.type && m.type === "UserTag" && m.actor === this.userid
+            )
+        }
+    },
+    template: '#user-tags'
+}
+
+const TagSearch = {
+    props: ["tag"],
+    setup(props) {
+        const $gf = Vue.inject('graffiti')
+        const tag = Vue.toRef(props, 'tag')
+        const { objects: tagsRaw } = $gf.useObjects([tag])
+        return { tagsRaw }
+    },
+    computed: {
+        tags() {
+            return this.tagsRaw.filter(
+                (m) => m.type && m.type === "Tag" && m.tag === this.tag && m.actor === this.$gf.me
+            )
+        }
+    },
+    template: '#tagSearch'
+}
+
+const Timer = {
+    props: ["channelid"],
+    setup(props) {
+        const $gf = Vue.inject('graffiti')
+        const channelid = Vue.toRef(props, 'channelid')
+        const { objects: timersRaw } = $gf.useObjects([channelid])
+        return { timersRaw }
+    },
+    methods: {
+        sendTimer(timerString) {
+            this.$gf.post({
+                type: "Timer",
+                time: timerString,
+                context: [this.channelid]
+            });
+        }
+    },
+    computed: {
+        timers() {
+            return this.timersRaw.filter(
+                (m) => m.type && m.type === "Timer"
+            )
+        },
+        finishedTimers() {
+            //  convert t.time to a date object
+            return this.timers.filter((t) => {
+                const time = new Date(t.time);
+                return time < new Date();
+            });
+        }
+    },
+    template: '#timer'
+}
+
+app.components = {Name, Like, ReadReceipt, Profile, Pin, PinSearch, TagMessage, TagSearch, UserTags, Timer}
 Vue.createApp(app)
     .use(GraffitiPlugin(Vue))
     .mount('#app')
