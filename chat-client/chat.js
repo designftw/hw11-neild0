@@ -111,8 +111,7 @@ const app = {
                     inputBox.value = '';
                     inputBox.classList.remove('move-up');
                 }, 500);  // 500ms is the duration of the transition
-            }
-            else {
+            } else {
                 console.log('empty');
                 let submitButton = document.getElementById('submit');
                 submitButton.classList.add('input-error');
@@ -281,8 +280,8 @@ const Like = {
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const messageid = Vue.toRef(props, 'messageid')
-        const { objects: likesRaw } = $gf.useObjects([messageid])
-        return { likesRaw }
+        const {objects: likesRaw} = $gf.useObjects([messageid])
+        return {likesRaw}
     },
 
     computed: {
@@ -308,10 +307,10 @@ const ReadReceipt = {
         const $gf = Vue.inject('graffiti');
         const messageid = Vue.toRef(props, 'messageid');
         const readerUsernames = Vue.ref([]);
-        const { objects: readReceiptsRaw } = $gf.useObjects([messageid]);
+        const {objects: readReceiptsRaw} = $gf.useObjects([messageid]);
 
         // if the message is not ours and we have not seen it yet, send a read receipt
-        return { readReceiptsRaw, readerUsernames };
+        return {readReceiptsRaw, readerUsernames};
     },
 
     created() {
@@ -446,8 +445,8 @@ const Pin = {
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const messageid = Vue.toRef(props, 'messageid')
-        const { objects: pinsRaw } = $gf.useObjects([messageid])
-        return { pinsRaw }
+        const {objects: pinsRaw} = $gf.useObjects([messageid])
+        return {pinsRaw}
     },
 
     computed: {
@@ -475,8 +474,8 @@ const PinSearch = {
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const channelid = Vue.toRef(props, 'channelid')
-        const { objects: pinsRaw } = $gf.useObjects([channelid])
-        return { pinsRaw }
+        const {objects: pinsRaw} = $gf.useObjects([channelid])
+        return {pinsRaw}
     },
 
     computed: {
@@ -500,8 +499,8 @@ const TagMessage = {
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const messageid = Vue.toRef(props, 'messageid')
-        const { objects: tagsRaw } = $gf.useObjects([messageid])
-        return { tagsRaw }
+        const {objects: tagsRaw} = $gf.useObjects([messageid])
+        return {tagsRaw}
     },
     methods: {
         sendTag(tagString) {
@@ -551,8 +550,8 @@ const UserTags = {
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const userid = Vue.toRef(props, 'userid')
-        const { objects: tagsRaw } = $gf.useObjects([userid])
-        return { tagsRaw }
+        const {objects: tagsRaw} = $gf.useObjects([userid])
+        return {tagsRaw}
     },
     methods: {
         addTag() {
@@ -587,8 +586,8 @@ const TagSearch = {
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const tag = Vue.toRef(props, 'tag')
-        const { objects: tagsRaw } = $gf.useObjects([tag])
-        return { tagsRaw }
+        const {objects: tagsRaw} = $gf.useObjects([tag])
+        return {tagsRaw}
     },
     computed: {
         tags() {
@@ -605,8 +604,8 @@ const Timer = {
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const channelid = Vue.toRef(props, 'channelid')
-        const { objects: timersRaw } = $gf.useObjects([channelid])
-        return { timersRaw }
+        const {objects: timersRaw} = $gf.useObjects([channelid])
+        return {timersRaw}
     },
     methods: {
         sendTimer(timerString) {
