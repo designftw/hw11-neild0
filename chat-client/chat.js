@@ -45,6 +45,7 @@ const app = {
             file: null,
             downloadedImages: {},
             replyTo: null,
+            showPinned: false,
         };
     },
 
@@ -105,6 +106,9 @@ const app = {
     },
 
     methods: {
+        togglePinnedMessages() {
+            this.showPinned = !this.showPinned;
+        },
         addGroup() {
             this.$gf.post({
                 type: "Group",
@@ -129,20 +133,20 @@ const app = {
             // Reset the value of the input box to the placeholder after the transition
             if (this.messageText !== '') {
                 let inputBox = document.getElementById('myInput');
-                inputBox.classList.add('move-up');
-                setTimeout(() => {
-                    inputBox.value = '';
-                    inputBox.classList.remove('move-up');
-                }, 500);  // 500ms is the duration of the transition
+                // inputBox.classList.add('move-up');
+                // setTimeout(() => {
+                //     inputBox.value = '';
+                //     inputBox.classList.remove('move-up');
+                // }, 500);  // 500ms is the duration of the transition
             } else {
                 console.log('empty');
                 let submitButton = document.getElementById('submit');
                 submitButton.classList.add('input-error');
                 submitButton.value = 'Invalid';
-                setTimeout(() => {
-                    submitButton.value = 'Send';
-                    submitButton.classList.remove('input-error');
-                }, 500);  // 500ms is the duration of the transition
+                // setTimeout(() => {
+                //     submitButton.value = 'Send';
+                //     submitButton.classList.remove('input-error');
+                // }, 500);  // 500ms is the duration of the transition
             }
 
             if (this.file) {
@@ -373,50 +377,40 @@ const ReadReceipt = {
 const Profile = {
     props: ["actor", "editable"],
     setup(props) {
-        // Get a collection of all objects associated with the actor
         const {actor} = Vue.toRefs(props)
         const $gf = Vue.inject('graffiti')
-        return $gf.useObjects([actor])
+        const {objects: objects} = $gf.useObjects([actor])
+        return {objects, editable: props.editable}
     },
     data() {
         return {
             editing: false,
             file: null,
+            username: '',
             profilePictureUrl: "",
+            editable: this.editable
         };
     },
     computed: {
         profile() {
             return this.objects
-                // Filter the raw objects for profile data
-                // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-profile
-                .filter(m =>
-                    // Does the message have a type property?
-                    m.type &&
-                    // Is the value of that property 'Profile'?
-                    m.type == 'Profile' &&
-                    // Does the message have a name property?
-                    m.icon &&
-                    // Is that property a string?
-                    m.icon.type == 'Image')
-                // Choose the most recent one or null if none exists
+                .filter(m => m.type && m.type == 'Profile' && m.icon && m.icon.type == 'Image')
                 .reduce((prev, curr) => !prev || curr.published > prev.published ? curr : prev, null)
         },
     },
     methods: {
-
-
         async getProfilePictureUrl(magnet) {
             const blob = await this.$gf.media.fetch(magnet);
             return URL.createObjectURL(blob);
         },
-        editProfilePicture() {
+        editProfile() {
             this.editing = true;
         },
         handleFileUpload(e) {
             this.file = e.target.files[0];
+            this.profilePictureUrl = URL.createObjectURL(this.file);
         },
-        async saveProfilePicture() {
+        async saveProfile() {
             if (this.file) {
                 const magnet = await this.$gf.media.store(this.file);
                 const profileUpdate = {
@@ -424,7 +418,8 @@ const Profile = {
                     icon: {
                         type: "Image",
                         magnet: magnet,
-                    }
+                    },
+                    name: this.username
                 };
                 this.$gf.post(profileUpdate);
                 this.profilePictureUrl = await this.getProfilePictureUrl(magnet);
@@ -436,6 +431,7 @@ const Profile = {
         async profile(profile) {
             if (profile && profile.icon && profile.icon.magnet) {
                 this.profilePictureUrl = await this.getProfilePictureUrl(profile.icon.magnet);
+                this.username = profile.name || '';
             }
         }
     },
@@ -501,6 +497,16 @@ const PinSearch = {
         return {pinsRaw}
     },
 
+    data() {
+        return {
+            showPinnedMessages: false,
+        };
+    },
+    methods: {
+        togglePinnedMessages() {
+            this.showPinnedMessages = !this.showPinnedMessages;
+        }
+    },
     computed: {
         pins() {
             return this.pinsRaw.filter(
