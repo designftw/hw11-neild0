@@ -146,7 +146,7 @@ const app = {
                 // setTimeout(() => {
                 //     submitButton.value = 'Send';
                 //     submitButton.classList.remove('input-error');
-                // }, 500);  // 500ms is the duration of the transition
+                // }, 500);  // 500ms is theduration of the transition
             }
 
             if (this.file) {
