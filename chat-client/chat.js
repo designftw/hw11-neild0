@@ -14,22 +14,26 @@ const app = {
 
     setup() {
         // Initialize the name of the channel we're chatting in
-        const channel = Vue.ref("test");
+        const channel = Vue.ref("");
+        const $gf = Vue.inject("graffiti");
 
         // And a flag for whether or not we're private-messaging
         const privateMessaging = Vue.ref(false);
+        const userContext = Vue.computed(() => [$gf.me]
+        );
+        const {objects: groupsRaw} = $gf.useObjects(userContext)
 
         // If we're private messaging use "me" as the channel,
         // otherwise use the channel value
-        const $gf = Vue.inject("graffiti");
         const context = Vue.computed(() =>
             privateMessaging.value ? [$gf.me] : [channel.value]
         );
 
         // Initialize the collection of messages associated with the context
         const {objects: messagesRaw} = $gf.useObjects(context);
-        return {channel, privateMessaging, messagesRaw};
+        return {channel, privateMessaging, messagesRaw, groupsRaw};
     },
+
 
     data() {
         // Initialize some more reactive variables
@@ -45,6 +49,11 @@ const app = {
     },
 
     computed: {
+        groups() {
+            return this.groupsRaw.filter(
+                (m) => m.type === "Group" && m.content && typeof m.content == "string"
+            )
+        },
         messages() {
             let messages = this.messagesRaw
                 // Filter the "raw" messages for data
@@ -96,6 +105,20 @@ const app = {
     },
 
     methods: {
+        addGroup() {
+            this.$gf.post({
+                type: "Group",
+                content: this.channel,
+                context: [this.$gf.me],
+            });
+        },
+        removeGroup(group) {
+            this.$gf.remove(group);
+        },
+        selectGroup(channel) {
+            this.channel = channel.content;
+            this.privateMessaging = false;
+        },
         async sendMessage() {
 
             const message = {
@@ -633,7 +656,35 @@ const Timer = {
     template: '#timer'
 }
 
-app.components = {Name, Like, ReadReceipt, Profile, Pin, PinSearch, TagMessage, TagSearch, UserTags, Timer}
+const Groups = {
+    props: ["userId"],
+
+    setup(props) {
+        const $gf = Vue.inject('graffiti')
+        const userId = Vue.toRef(props, 'userId')
+        const {objects: groupsRaw} = $gf.useObjects([userId])
+        return {groupsRaw}
+    },
+    methods: {
+        addGroup() {
+            this.$gf.post({
+                type: "Group",
+                context: [this.userId]
+            });
+        }
+    },
+
+    computed: {
+        groups() {
+            return this.groupsRaw.filter(
+                (m) => m.type && m.type === "Group" && m.actor === this.userId
+            )
+        }
+    },
+    template: '#groups'
+}
+
+app.components = {Name, Like, ReadReceipt, Profile, Pin, PinSearch, TagMessage, TagSearch, UserTags, Timer, Groups}
 Vue.createApp(app)
     .use(GraffitiPlugin(Vue))
     .mount('#app')

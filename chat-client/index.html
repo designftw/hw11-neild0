@@ -6,180 +6,193 @@
     <meta charset="UTF-8">
 </head>
 <body>
-<div class="container" id="app">
-    <h1 class="title">
-        Group Chat App
-    </h1>
-
-    <p>
-        <button @click="$gf.toggleLogIn" class="login-btn">
-            {{ $gf.me? 'Log Out' : 'Log In' }}
-        </button>
-
-
-    </p>
-
-
-    <!-- If we're not logged in, hide everything except the login button -->
-    <template v-if="$gf.me">
-
-        <p>
-            <!-- We display names in multiple places, so we made a -->
-            <!-- reusable <name></name> component. -->
-            <!-- See below for the template. -->
-            My Name Is:
-            <name :actor="$gf.me" :editable="true"></name>
-        </p>
-
-        <profile :actor="$gf.me" :editable="true"></profile>
-
-        <!--      <p>-->
-        <!--        Change chat format:-->
-        <!--        <input type="radio" id="channel" :value="false" v-model="privateMessaging" />-->
-        <!--        <label for="channel">Channel-based public chat</label>-->
-
-        <!--        <input type="radio" id="pm" :value="true" v-model="privateMessaging" />-->
-        <!--        <label for="pm">Private Messaging</label>-->
-        <!--      </p>-->
-        <!--      <p v-else>-->
-        <!--        <label for="recipient">-->
-        <!--          Paste the Actor ID of who you'd like to chat with:-->
-        <!--        </label>-->
-        <!--        <input id="recipient" v-model="recipient"/>-->
-        <!--      </p>-->
-
-        <input id="channel" v-model="channel"/>
-        <user-tags :userid="$gf.me"></user-tags>
-
-        <div class="messages-container">
-
-            <ul>
-                <!-- List all the messages -->
-                <transition-group name="fade">
-                    <li :class="{'other-message': message.actor!=$gf.me, 'my-message': message.actor==$gf.me}" :key="message.id"
-                        v-for="message of messages.slice().reverse()">
-
-                        <div class="message-line">
-
-                            <div class="message-controls" v-if="message.actor==$gf.me">
-                                <button @click="startEditMessage(message)" class="message-control">✏️</button>
-                                <button @click="removeMessage(message)" class="message-control">🗑️</button>
-                                <pin :channelid="channel" :messageid="message.id"></pin>
-                            </div>
-
-                            <div class="message-wrapper">
-                                <div :class="{'sender-me': message.actor==$gf.me, 'sender-other': message.actor!=$gf.me}"
-                                     class="message-sender">
-                                    <name :actor="message.actor"></name>
-
-                                </div>
-                                <div class="message-bubble message-other replyView" v-if="messagesMap[message.replyTo]">
-                                    <name :actor="messagesMap[message.replyTo].actor" class="message-sender"></name>
-                                    <div class="message-reply-content">{{ messagesMap[message.replyTo].content }}</div>
-                                </div>
-                                <div class="attachment-message-wrapper">
-                                    <div class="horizontal-message-block">
-                                        <div :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
-                                             class="message-bubble">
-                                            <!-- Display and edit form if we're editing a message -->
-                                            <form @submit.prevent="saveEditMessage(message)" v-if="editID==message.id">
-                                                <input v-model="editText">
-                                                <input type="submit" value="Save"/>
-                                            </form>
+<div class="container" id="app" userId="">
+    <ui-split>
+        <group-feed>
+            <!--    <p>-->
+            <!--        <name :actor="$gf.me" :editable="true"></name>-->
+            <!--    </p>-->
+            <group-header>
+                <profile :actor="userId" :editable="true"></profile>
+                <search-bar>
+                    <label for="channel">
+                        <input id="channel" placeholder="Search for a new group:" v-model="channel"/>
+                    </label>
+                    <button @click="addGroup" class="createChannelButton" class="create-channel-btn">+</button>
+                </search-bar>
+            </group-header>
+            <!--                make a line here-->
+            <div class="line"></div>
+            <group-column>
+                <div :group="group" :key="group.id" @click="selectGroup(group)" class="group-item"
+                     v-for="group in groups">
+                    {{group.content}}
+                    <button @click="removeGroup(group)" class="message-control">🗑️</button>
+                </div>
+            </group-column>
+            <group-list>
 
 
-                                            <!-- Otherwise, display a bunch of properties from the message -->
-                                            <ul v-else>
-                                                <li>
-                                                    {{ message.content }}
-                                                </li>
-                                                <!--            <li>-->
-                                                <!--              From Actor ID: {{ message.actor }}-->
-                                                <!--            </li>-->
-                                                <!--            <template v-if="privateMessaging">-->
-                                                <!--              <li>-->
-                                                <!--                To Name: <name :actor="message.bto[0]"></name>-->
-                                                <!--              </li>-->
-                                                <!--              <li>-->
-                                                <!--                To Actor ID: {{ message.bto[0] }}-->
-                                                <!--              </li>-->
-                                                <!--            </template>-->
-                                                <!--            <li>-->
-                                                <!--              Published at Time: {{ message.published }}-->
-                                                <!--            </li>-->
-                                                <!--            <li>-->
-                                                <!--              Last Edited at Time: {{ message.updated }}-->
-                                                <!--            </li>-->
-                                                <!--            <li>-->
-                                                <!--              &lt;!&ndash; This is a unique identifier that can be used to "link" to messages &ndash;&gt;-->
-                                                <!--              ID: {{ message.id }}-->
-                                                <!--            </li>-->
+            </group-list>
 
-                                                <!-- Only add these controls if the message is ours -->
-                                                <!-- You can't edit or delete other people's messages -->
 
-                                            </ul>
-                                        </div>
-                                        <div v-if="message.actor!=$gf.me">
-                                            <button @click="replyToMessage(message)" class="message-control">↩️</button>
-                                            <like :messageid="message.id"></like>
-                                            <pin :channelid="channel" :messageid="message.id"></pin>
-                                        </div>
+        </group-feed>
+        <message-feed>
+            <template v-if="$gf.me">
+                <groups userId="$gf.me">
+
+                </groups>
+
+                <!--    <p>-->
+                <!--        <button @click="$gf.toggleLogIn" class="login-btn">-->
+                <!--            {{ $gf.me? 'Log Out' : 'Log In' }}-->
+                <!--        </button>-->
+
+
+                <!--    </p>-->
+
+
+                <!-- If we're not logged in, hide everything except the login button -->
+
+
+                <!--        <user-tags :userid="$gf.me"></user-tags>-->
+
+                <div class="messages-container">
+
+                    <ul>
+                        <!-- List all the messages -->
+                        <transition-group name="fade">
+                            <li :class="{'other-message': message.actor!=$gf.me, 'my-message': message.actor==$gf.me}"
+                                :key="message.id"
+                                v-for="message of messages.slice().reverse()">
+
+                                <div class="message-line">
+
+                                    <div class="message-controls" v-if="message.actor==$gf.me">
+                                        <button @click="startEditMessage(message)" class="message-control">✏️</button>
+                                        <button @click="removeMessage(message)" class="message-control">🗑️</button>
+                                        <pin :channelid="channel" :messageid="message.id"></pin>
                                     </div>
-                                    <div :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
-                                         class="message-bubble"
-                                         v-if="message.attachment">
-                                        <div class="attachment-div">
-                                            <div v-if="downloadedImages[message.attachment.magnet]">
-                                                <a :href="downloadedImages[message.attachment.magnet]" download>
-                                                    <img :src="downloadedImages[message.attachment.magnet]"/>
-                                                </a>
-                                            </div>
-                                            <div v-else>
-                                                <!--                                            loading circle -->
-                                                <div class="loader"></div>
-                                            </div>
+
+                                    <div class="message-wrapper">
+                                        <div :class="{'sender-me': message.actor==$gf.me, 'sender-other': message.actor!=$gf.me}"
+                                             class="message-sender">
+                                            <name :actor="message.actor"></name>
 
                                         </div>
+                                        <div class="message-bubble message-other replyView"
+                                             v-if="messagesMap[message.replyTo]">
+                                            <name :actor="messagesMap[message.replyTo].actor"
+                                                  class="message-sender"></name>
+                                            <div class="message-reply-content">{{ messagesMap[message.replyTo].content
+                                                }}
+                                            </div>
+                                        </div>
+                                        <div class="attachment-message-wrapper">
+                                            <div class="horizontal-message-block">
+                                                <div :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
+                                                     class="message-bubble">
+                                                    <!-- Display and edit form if we're editing a message -->
+                                                    <form @submit.prevent="saveEditMessage(message)"
+                                                          v-if="editID==message.id">
+                                                        <input v-model="editText">
+                                                        <input type="submit" value="Save"/>
+                                                    </form>
+
+
+                                                    <!-- Otherwise, display a bunch of properties from the message -->
+                                                    <ul v-else>
+                                                        <li>
+                                                            {{ message.content }}
+                                                        </li>
+                                                        <!--            <li>-->
+                                                        <!--              From Actor ID: {{ message.actor }}-->
+                                                        <!--            </li>-->
+                                                        <!--            <template v-if="privateMessaging">-->
+                                                        <!--              <li>-->
+                                                        <!--                To Name: <name :actor="message.bto[0]"></name>-->
+                                                        <!--              </li>-->
+                                                        <!--              <li>-->
+                                                        <!--                To Actor ID: {{ message.bto[0] }}-->
+                                                        <!--              </li>-->
+                                                        <!--            </template>-->
+                                                        <!--            <li>-->
+                                                        <!--              Published at Time: {{ message.published }}-->
+                                                        <!--            </li>-->
+                                                        <!--            <li>-->
+                                                        <!--              Last Edited at Time: {{ message.updated }}-->
+                                                        <!--            </li>-->
+                                                        <!--            <li>-->
+                                                        <!--              &lt;!&ndash; This is a unique identifier that can be used to "link" to messages &ndash;&gt;-->
+                                                        <!--              ID: {{ message.id }}-->
+                                                        <!--            </li>-->
+
+                                                        <!-- Only add these controls if the message is ours -->
+                                                        <!-- You can't edit or delete other people's messages -->
+
+                                                    </ul>
+                                                </div>
+                                                <div v-if="message.actor!=$gf.me">
+                                                    <button @click="replyToMessage(message)" class="message-control">↩️
+                                                    </button>
+                                                    <like :messageid="message.id"></like>
+                                                    <pin :channelid="channel" :messageid="message.id"></pin>
+                                                </div>
+                                            </div>
+                                            <div :class="{'message-me': message.actor==$gf.me, 'message-other': message.actor!=$gf.me}"
+                                                 class="message-bubble"
+                                                 v-if="message.attachment">
+                                                <div class="attachment-div">
+                                                    <div v-if="downloadedImages[message.attachment.magnet]">
+                                                        <a :href="downloadedImages[message.attachment.magnet]" download>
+                                                            <img :src="downloadedImages[message.attachment.magnet]"/>
+                                                        </a>
+                                                    </div>
+                                                    <div v-else>
+                                                        <!--                                            loading circle -->
+                                                        <div class="loader"></div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <profile :actor="message.actor" class="message-profile"></profile>
+                                        <read-receipt :messageid="message.id" class="read-receipt">
+                                        </read-receipt>
                                     </div>
+
+
                                 </div>
-                                <profile :actor="message.actor" class="message-profile"></profile>
-                                <read-receipt :messageid="message.id" class="read-receipt">
-                                </read-receipt>
-                            </div>
+                            </li>
+                        </transition-group>
+                    </ul>
 
+                </div>
+                <div v-if="replyTo">
+                    <!--            have the replyTo message content here-->
+                    <name :actor="messagesMap[replyTo].actor" class="message-sender"></name>
+                    <div class="message-bubble message-other replyView">
+                        {{messagesMap[replyTo].content}}
+                    </div>
+                    <button @click="removeReplyTo" class="message-control">🗑️</button>
 
-                        </div>
-                    </li>
-                </transition-group>
-            </ul>
+                </div>
+                <form @submit.prevent="sendMessage">
+                    <input id="myInput" placeholder="Type a message..." type="text" v-model="messageText"/>
+                    <input @change="handleFileUpload" accept="image/*" ref="fileInput" type="file"/>
+                    <input id="submit" type="submit" value="Send"/>
+                </form>
 
-        </div>
-        <div v-if="replyTo">
-            <!--            have the replyTo message content here-->
-            <name :actor="messagesMap[replyTo].actor" class="message-sender"></name>
-            <div class="message-bubble message-other replyView">
-                {{messagesMap[replyTo].content}}
-            </div>
-            <button @click="removeReplyTo" class="message-control">🗑️</button>
+                <pin-search :channelid="channel">
 
-        </div>
-        <form @submit.prevent="sendMessage">
-            <input id="myInput" placeholder="Type a message..." type="text" v-model="messageText"/>
-            <input @change="handleFileUpload" accept="image/*" ref="fileInput" type="file"/>
-            <input id="submit" type="submit" value="Send"/>
-        </form>
+                </pin-search>
 
-        <pin-search :channelid="channel">
+            </template>
+        </message-feed>
+        <!-- A form for sending messages -->
 
-        </pin-search>
-
-    </template>
-    <!-- A form for sending messages -->
-
-
+    </ui-split>
 </div>
-
 
 <template id="name">
     <span v-if="!editing">
@@ -250,14 +263,16 @@
 <template id="profile">
     <span v-if="!editing">
         <img :src="profilePictureUrl" class="profile-picture" v-if="profilePictureUrl"/>
-        <button @click="editProfilePicture" v-if="editable">
-            Set Profile Picture
-        </button>
+        <img class="profile-picture" src="./icons/blank_pic.png" v-else/>
+        <!--        <button @click="editProfilePicture" v-if="editable">-->
+        <!--            Set Profile Picture-->
+        <!--            {{profilePictureUrl}}-->
+        <!--        </button>-->
     </span>
-    <form @submit.prevent="saveProfilePicture" v-else>
-        <input @change="handleFileUpload" accept="image/*" ref="fileInput" type="file"/>
-        <input type="submit" value="Save Profile Picture"/>
-    </form>
+    <!--    <form @submit.prevent="saveProfilePicture" v-else>-->
+    <!--        <input @change="handleFileUpload" accept="image/*" ref="fileInput" type="file"/>-->
+    <!--        <input type="submit" value="Save Profile Picture"/>-->
+    <!--    </form>-->
 </template>
 
 <!--<template id="tagMessage">-->
@@ -281,6 +296,10 @@
             <button @click="addTag">Add Tag</button>
         </div>
     </div>
+</template>
+
+<template id="groups">
+
 </template>
 
 

@@ -27,14 +27,14 @@ export default class UsernameResolver {
             if (this.#offerFilter(object)) {
                 // Someone else already has the name!
                 if (
-                    object.actor != this.gf.me &&
-                    object.object.preferredUsername == preferredUsername
+                    object.actor !== this.gf.me &&
+                    object.object.preferredUsername === preferredUsername
                 ) {
                     throw "Username already claimed!";
                 }
 
                 // An offer already exists!
-                if (object.actor == this.gf.me) {
+                if (object.actor === this.gf.me) {
                     if (!offer) {
                         offer = object;
                     } else if (object.updated < offer.updated) {
@@ -134,7 +134,7 @@ export default class UsernameResolver {
     #offerFilter(o) {
         return (
             o.type &&
-            o.type == "Offer" &&
+            o.type === "Offer" &&
             o.target &&
             this.#targetFilter(o.target) &&
             o.object &&
