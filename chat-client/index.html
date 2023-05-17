@@ -412,12 +412,15 @@
 <template id="tag-message">
     <div class="messageTag">
         <div class="popup" v-if="tagMenu">
-            <ul>
+            <ul v-if="tagNames.length > 0">
                 <li :key="tag" v-for="tag in tagNames">
                     <input :id="tag" :value="tag" type="checkbox" :checked="selectedTags.includes(tag)" @change="toggleTag(tag)">
                     <label :for="tag">{{ tag }}</label>
                 </li>
             </ul>
+            <div v-else>
+                No tags -- add some in tag menu!
+            </div>
         </div>
         <button @click="toggleTagMenu()">
             <span v-if="!tagMenu">Show Tags</span>
