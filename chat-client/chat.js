@@ -46,6 +46,7 @@ const app = {
             downloadedImages: {},
             replyTo: null,
             showPinned: false,
+            showTagged: false,
         };
     },
 
@@ -108,6 +109,9 @@ const app = {
     methods: {
         togglePinnedMessages() {
             this.showPinned = !this.showPinned;
+        },
+        toggleTaggedMessages() {
+            this.showTagged = !this.showTagged;
         },
         addGroup() {
             this.$gf.post({
@@ -524,24 +528,38 @@ const PinSearch = {
 }
 
 const TagMessage = {
-    props: ["messageid"],
+    props: ["messageid", "channelid", "userid", "messagestring"],
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const messageid = Vue.toRef(props, 'messageid')
         const {objects: tagsRaw} = $gf.useObjects([messageid])
-        return {tagsRaw}
+        const userid = Vue.toRef(props, 'userid')
+        const {objects: userTags} = $gf.useObjects([userid])
+        const messageString = Vue.toRef(props, 'messagestring')
+        return {tagsRaw, userTags, messageString}
+    },
+    data() {
+        return {
+            tagMenu: false,
+        };
     },
     methods: {
+        toggleTagMenu() {
+            this.tagMenu = !this.tagMenu;
+        },
         sendTag(tagString) {
+            console.log("sendTag", this.messageString)
             this.$gf.post({
                 type: "Tag",
                 object: this.messageid,
                 tag: tagString,
-                context: [this.messageid, this.tag]
+                content: this.messageString,
+                context: [this.messageid, this.channelid, this.userid]
             });
         },
         toggleTag(tagString) {
-            if (this.getTag(this.tag).length > 0) {
+            console.log("toggleTag", tagString, this.getTag(tagString))
+            if (this.getTag(tagString).length > 0) {
                 this.removeTag(tagString);
             } else {
                 this.sendTag(tagString);
@@ -563,24 +581,33 @@ const TagMessage = {
             )
         },
         tagNames() {
-            return this.tags.map((t) => t.tag);
+            console.log("userTags", this.userTags)
+            const names = this.userTags.filter((t) => t.type && t.type === "UserTag").map((t) => t.tag)
+            console.log("tagNames", names)
+            return names
+        },
+        selectedTags() {
+            return this.tags.map((t) => t.tag)
         }
     },
-    template: '#tagMessage'
+    template: '#tag-message'
 }
 
 const UserTags = {
-    props: ["userid"],
+    props: ["userid", 'channelid'],
     data() {
         return {
             newTag: "",
+            selectedTags: [],
         }
     },
     setup(props) {
         const $gf = Vue.inject('graffiti')
         const userid = Vue.toRef(props, 'userid')
         const {objects: tagsRaw} = $gf.useObjects([userid])
-        return {tagsRaw}
+        const channelid = Vue.toRef(props, 'channelid')
+        const {objects: channelTags} = $gf.useObjects([channelid])
+        return {tagsRaw, channelTags}
     },
     methods: {
         addTag() {
@@ -595,9 +622,23 @@ const UserTags = {
             }
         },
         removeTag(tagString) {
+            console.log("removing tag", tagString, this.tags);
             for (const tag of this.tags.filter((l) => l.tag === tagString)) {
                 this.$gf.remove(tag);
             }
+        },
+        selectTag(tagString) {
+            //     add tag to selected tags
+            //     if tag is already selected, remove it
+            if (this.selectedTags.includes(tagString)) {
+                this.selectedTags = this.selectedTags.filter((t) => t !== tagString)
+            } else {
+                this.selectedTags.push(tagString)
+            }
+            console.log(this.selectedTags)
+        },
+        tagSelected(tagString) {
+            return this.selectedTags.includes(tagString)
         }
     },
     computed: {
@@ -605,7 +646,17 @@ const UserTags = {
             return this.tagsRaw.filter(
                 (m) => m.type && m.type === "UserTag" && m.actor === this.userid
             )
+        },
+        taggedMessages() {
+            const validTags = this.tagsRaw.filter(
+                (m) => m.type && m.type === "Tag" && m.actor === this.$gf.me && this.selectedTags.includes(m.tag)
+            );
+            console.log("validTags", validTags.map((t) => t.content));
+
+            const uniqueContents = new Set(validTags.map((t) => t.content));
+            return Array.from(uniqueContents);
         }
+
     },
     template: '#user-tags'
 }

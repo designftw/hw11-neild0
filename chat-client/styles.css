@@ -205,7 +205,7 @@ form input[type="submit"] {
     position: relative;
     overflow-y: scroll;
     height: 100%;
-    padding:0 15px;
+    padding: 0 15px;
 }
 
 
@@ -375,7 +375,7 @@ form input[type="submit"] {
 group-feed {
     display: flex;
     flex-direction: column;
-    flex:1;
+    flex: 1;
     padding: 20px;
     height: 100%;
 }
@@ -452,8 +452,17 @@ group-column {
     cursor: pointer;
 }
 
-group-item:hover {
-    background-color: #dcdcdc;
+.group-item:hover {
+    background-color: #e0dfdf;
+}
+
+.group-item-selected {
+    background-color: #1e90ff;
+    color: #ffffff;
+}
+
+.group-item-selected:hover {
+    background-color: #1e90ff;
 }
 
 div.horizontal-line {
@@ -471,7 +480,6 @@ div.vertical-line {
     border-radius: 10px;
     margin: 20px 0 200px 0;
 }
-
 
 
 message-feed {
@@ -553,8 +561,8 @@ div.messages-header {
     z-index: 1000;
     font-size: 14px;
     overflow-y: scroll;
-    right:0;
-    top:60px;
+    right: 0;
+    top: 60px;
     max-height: 50vh;
 }
 
@@ -628,7 +636,7 @@ label.file-label:hover {
 .replySend {
     display: flex;
     flex-direction: column;
-    gap:5px;
+    gap: 5px;
 
 }
 
@@ -646,13 +654,19 @@ label.file-label:hover {
 .channel-buttons {
     display: flex;
     flex-direction: row;
+    gap: 30px;
+    font-size: 100px;
 }
 
 div.pinned-messages {
     padding: 15px 20px 15px 10px;
     height: 100%;
-    overflow-y: auto;
     max-height: 100vh;
+}
+
+div.pin-scroll {
+    height: calc(100% - 100px);
+    overflow-y: auto;
 }
 
 div.pinned-messages li {
@@ -662,4 +676,75 @@ div.pinned-messages li {
 div.pinned-messages li::before {
     content: '📌'; /* Inserts the pin emoji before each list item */
     margin-right: 5px; /* Adds some space between the emoji and the list item text */
+}
+
+div.tagged-messages {
+    padding: 15px 20px 15px 10px;
+    height: 100%;
+    overflow-y: auto;
+    max-height: 100vh;
+}
+
+.no-channel-selected {
+    display: fixed;
+}
+
+.messageTag {
+    position: relative;
+}
+
+.popup {
+    position: absolute;
+    bottom: 100%;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px;
+    width: 150px;
+    z-index: 1;
+}
+
+.popup ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.popup li {
+    cursor: pointer;
+}
+
+.user-tags li {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.tag {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 2px;
+    border-radius: 20px;
+    background-color: #ddd;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.selected-tag {
+    background-color: #4d2ed7;
+    color: #fff;
+}
+
+.selected-tag:hover {
+    background-color: #6f53e5 !important;
+}
+
+.tag:hover {
+    background-color: #ccc;
+}
+
+.messages-tagged {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }

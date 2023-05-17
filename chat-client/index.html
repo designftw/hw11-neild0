@@ -32,7 +32,8 @@
             <!--                make a line here-->
             <div class="horizontal-line"></div>
             <group-column>
-                <div :group="group" :key="group.id" @click="selectGroup(group)" class="group-item"
+                <div :class="group.content === channel ? 'group-item group-item-selected' : 'group-item'" :group="group" :key="group.id"
+                     @click="selectGroup(group)"
                      v-for="group in groups">
                     {{group.content}}
                     <button @click="removeGroup(group)" class="message-control">🗑️</button>
@@ -57,9 +58,11 @@
                     <div class="messages-header">
                         {{ channel }}
                         <div class="channel-buttons">
-<!--                            open pinned messages-->
+                            <!--                            open pinned messages-->
                             <div class="channel-buttons">
                                 <button @click="togglePinnedMessages" class="message-control">📌</button>
+                                <button @click="toggleTaggedMessages" class="message-control">🏷️</button>
+
                             </div>
                         </div>
                     </div>
@@ -67,7 +70,7 @@
 
                         <ul>
                             <!-- List all the messages -->
-                            <transition-group name="fade">
+                            <transition-group name="fade" v-if="channel !== ''">
                                 <li :class="{'other-message': message.actor!=$gf.me, 'my-message': message.actor==$gf.me}"
                                     :key="message.id"
                                     v-for="message of messages.slice().reverse()">
@@ -158,6 +161,11 @@
                                                             </button>
                                                             <like :messageid="message.id"></like>
                                                             <pin :channelid="channel" :messageid="message.id"></pin>
+                                                            <tag-message :channelid="channel"
+                                                                         :messageid="message.id"
+                                                                         :userid="$gf.me"
+                                                                        :messagestring="message.content"
+                                                            ></tag-message>
                                                         </div>
                                                     </div>
 
@@ -169,6 +177,11 @@
                                                             🗑️
                                                         </button>
                                                         <pin :channelid="channel" :messageid="message.id"></pin>
+                                                        <tag-message :channelid="channel"
+                                                                     :messageid="message.id"
+                                                                     :userid="$gf.me"
+                                                                     :messagestring="message.content"
+                                                        ></tag-message>
                                                     </div>
                                                 </div>
 
@@ -186,6 +199,10 @@
                                     </div>
                                 </li>
                             </transition-group>
+                            <div class="no-channel-selected" v-else>
+                                No channel selected -- select a channel to start chatting!
+
+                            </div>
                         </ul>
 
                     </div>
@@ -221,8 +238,12 @@
             </template>
         </message-feed>
         <!-- A form for sending messages -->
-        <div v-if="showPinned" class="pinned-messages">
+        <div class="pinned-messages" v-if="showPinned">
             <pin-search :channelId="channel"></pin-search>
+        </div>
+        <div class="vertical-line" v-if="showPinned && showTagged"></div>
+        <div class="tagged-messages" v-if="showTagged">
+            <user-tags :userid="$gf.me"></user-tags>
         </div>
 
 
@@ -274,18 +295,19 @@
 </template>
 
 <template id="pin-search">
-        <h2>
-            Pinned Messages
-        </h2>
-        <div class="horizontal-line"></div>
-        <li :key="message.id" v-for="message of pinnedMessages">
-            <div class="message-bubble message-other">
+    <h2>
+        Pinned Messages
+    </h2>
+    <div class="horizontal-line"></div>
+    <div class="pin-scroll">
+    <li :key="message.id" v-for="message of pinnedMessages">
+        <div class="message-bubble message-other">
 
-                {{message.content}}
+            {{message.content}}
 
-            </div>
-        </li>
-
+        </div>
+    </li>
+    </div>
 </template>
 
 <template id="read-receipt">
@@ -356,20 +378,54 @@
 <!--</template>-->
 
 <template id="user-tags">
+
+    <h2>
+        Tagged Messages
+    </h2>
+    <div class="horizontal-line"></div>
     <div class="user-tags">
-        <h2>User Tags</h2>
         <ul>
             <li :key="tag.id" v-for="tag in tags">
-                {{ tag.tag }}
+                <div :class="tagSelected(tag.tag) ? 'selected-tag tag' : 'tag'" @click="selectTag(tag.tag)">
+                    {{ tag.tag }}
+                </div>
                 <button @click="removeTag(tag.tag)">Remove</button>
             </li>
         </ul>
-        <div class="add-tag">
-            <input placeholder="Enter new tag" type="text" v-model="newTag"/>
-            <button @click="addTag">Add Tag</button>
+    </div>
+    <div class="add-tag">
+        <input onEnter="addTag" placeholder="Enter new tag" type="text" v-model="newTag"/>
+        <button @click="addTag">Add Tag</button>
+    </div>
+    <div class="show-tagged-messages" v-if="selectedTags.length > 0">
+        <div class="horizontal-line"></div>
+        <div class="messages-tagged">
+            <div class="message-bubble message-other" v-for="message in taggedMessages">
+                {{message}}
+            </div>
+
         </div>
     </div>
+
 </template>
+
+<template id="tag-message">
+    <div class="messageTag">
+        <div class="popup" v-if="tagMenu">
+            <ul>
+                <li :key="tag" v-for="tag in tagNames">
+                    <input :id="tag" :value="tag" type="checkbox" :checked="selectedTags.includes(tag)" @change="toggleTag(tag)">
+                    <label :for="tag">{{ tag }}</label>
+                </li>
+            </ul>
+        </div>
+        <button @click="toggleTagMenu()">
+            <span v-if="!tagMenu">Show Tags</span>
+            <span v-else>Hide Tags</span>
+        </button>
+    </div>
+</template>
+
 
 <template id="groups">
 
